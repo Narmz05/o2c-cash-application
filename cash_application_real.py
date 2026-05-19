@@ -5,7 +5,6 @@ Dataset     : Real-world O2C Invoice Dataset (Kaggle) — 50,000 records
 Description : Applies payments to open invoices, performs reconciliation,
               aging analysis, and generates a complete O2C Excel report.
 """
-
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -19,14 +18,10 @@ print("=" * 60)
 print("   ORDER TO CASH — CASH APPLICATION & RECONCILIATION")
 print("=" * 60)
 
-# ─────────────────────────────────────────────────────
 # 1. LOAD & CLEAN DATA
-# ─────────────────────────────────────────────────────
 df = pd.read_csv("dataset.csv")
+print(f"\nDataset Loaded: {len(df):,} records")
 
-print(f"\n✅ Dataset Loaded: {len(df):,} records")
-
-# Clean & parse dates
 def safe_date(val):
     try:
         s = str(int(float(val)))
@@ -41,40 +36,36 @@ df["posting_date"]  = pd.to_datetime(df["posting_date"], errors="coerce")
 df["amount"]        = pd.to_numeric(df["total_open_amount"], errors="coerce").fillna(0)
 df["name_customer"] = df["name_customer"].fillna("Unknown Customer").str.strip()
 
-today = pd.Timestamp("2020-06-30")
+# FIX 2: Dynamic date instead of hardcoded
+today = pd.Timestamp.today().normalize()
 
-# ─────────────────────────────────────────────────────
-# 2. CASH APPLICATION — Paid vs Open
-# ─────────────────────────────────────────────────────
+# 2. CASH APPLICATION
 paid_df = df[df["isOpen"] == 0].copy()
 open_df = df[df["isOpen"] == 1].copy()
 
-print(f"\n📋 Invoice Summary")
+print(f"\nInvoice Summary")
 print(f"   Total Invoices     : {len(df):,}")
 print(f"   Paid / Cleared     : {len(paid_df):,}")
 print(f"   Open / Outstanding : {len(open_df):,}")
 
-# Cash Application Status for paid invoices
 def cash_app_status(row):
     if pd.isna(row["clear_date"]) or pd.isna(row["due_date"]):
-        return "Cleared – Date Unknown"
+        return "Cleared - Date Unknown"
     if row["clear_date"] <= row["due_date"]:
-        return "Paid – On Time"
+        return "Paid - On Time"
     else:
         days_late = (row["clear_date"] - row["due_date"]).days
         if days_late <= 15:
-            return "Paid – Slightly Late (≤15 days)"
+            return "Paid - Slightly Late (<=15 days)"
         elif days_late <= 30:
-            return "Paid – Late (16–30 days)"
+            return "Paid - Late (16-30 days)"
         else:
-            return "Paid – Very Late (>30 days)"
+            return "Paid - Very Late (>30 days)"
 
 paid_df["application_status"] = paid_df.apply(cash_app_status, axis=1)
 paid_df["days_to_pay"] = (paid_df["clear_date"] - paid_df["due_date"]).dt.days
 
-# ─────────────────────────────────────────────────────
-# 3. AGING ANALYSIS — Open Invoices
-# ─────────────────────────────────────────────────────
+# 3. AGING ANALYSIS
 def aging_bucket(row):
     if pd.isna(row["due_date"]):
         return "Unknown"
@@ -82,67 +73,65 @@ def aging_bucket(row):
     if days <= 0:
         return "Current (Not Yet Due)"
     elif days <= 30:
-        return "1–30 Days Overdue"
+        return "1-30 Days Overdue"
     elif days <= 60:
-        return "31–60 Days Overdue"
+        return "31-60 Days Overdue"
     elif days <= 90:
-        return "61–90 Days Overdue"
+        return "61-90 Days Overdue"
     else:
         return "90+ Days Overdue"
 
 open_df["aging_bucket"] = open_df.apply(aging_bucket, axis=1)
 open_df["days_overdue"] = (today - open_df["due_date"]).dt.days.clip(lower=0)
 
-# ─────────────────────────────────────────────────────
 # 4. SUMMARY STATS
-# ─────────────────────────────────────────────────────
 total_invoiced  = df["amount"].sum()
 total_collected = paid_df["amount"].sum()
 total_open      = open_df["amount"].sum()
 collection_rate = (total_collected / total_invoiced * 100) if total_invoiced > 0 else 0
 avg_days_late   = paid_df["days_to_pay"].mean()
 
-print(f"\n💰 Financial Summary")
+print(f"\nFinancial Summary")
 print(f"   Total Invoiced     : ${total_invoiced:>15,.2f}")
 print(f"   Total Collected    : ${total_collected:>15,.2f}")
 print(f"   Total Outstanding  : ${total_open:>15,.2f}")
 print(f"   Collection Rate    :  {collection_rate:>14.1f}%")
 print(f"   Avg Days to Pay    :  {avg_days_late:>14.1f} days")
 
-print(f"\n📊 Cash Application Status Breakdown:")
+print(f"\nCash Application Status Breakdown:")
 print(paid_df["application_status"].value_counts().to_string())
 
-print(f"\n📅 AR Aging Breakdown (Open Invoices):")
+print(f"\nAR Aging Breakdown (Open Invoices):")
 aging_summary = open_df.groupby("aging_bucket")["amount"].agg(["count","sum"])
 aging_summary.columns = ["Count", "Amount ($)"]
 aging_summary["Amount ($)"] = aging_summary["Amount ($)"].map("${:,.2f}".format)
 print(aging_summary.to_string())
 
-# ─────────────────────────────────────────────────────
-# 5. TOP CUSTOMERS — Outstanding
-# ─────────────────────────────────────────────────────
+# 5. TOP CUSTOMERS
 top_customers = (
     open_df.groupby("name_customer")["amount"]
     .sum().sort_values(ascending=False).head(10).reset_index()
 )
 top_customers.columns = ["Customer Name", "Outstanding Amount ($)"]
 
-print(f"\n🏆 Top 10 Customers by Outstanding Amount:")
+print(f"\nTop 10 Customers by Outstanding Amount:")
 print(top_customers.to_string(index=False))
 
-# ─────────────────────────────────────────────────────
 # 6. PREPARE EXPORT DATA
-# ─────────────────────────────────────────────────────
+
+# FIX 3: Removed head(5000) — export all paid invoices
 cash_app_export = paid_df[[
     "invoice_id","name_customer","business_code","invoice_currency",
     "amount","create_date","due_date","clear_date",
     "days_to_pay","application_status"
-]].copy().head(5000)
+]].copy()
+
 cash_app_export.columns = [
     "Invoice ID","Customer Name","Business Code","Currency",
     "Invoice Amount ($)","Invoice Date","Due Date","Payment Date",
     "Days to Pay","Application Status"
 ]
+
 for col in ["Invoice Date","Due Date","Payment Date"]:
     cash_app_export[col] = pd.to_datetime(cash_app_export[col]).dt.strftime("%d-%b-%Y")
 
@@ -177,9 +166,7 @@ summary_df = pd.DataFrame({
     ]
 })
 
-# ─────────────────────────────────────────────────────
 # 7. EXPORT TO EXCEL
-# ─────────────────────────────────────────────────────
 output_file = "O2C_Full_Report.xlsx"
 with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
     summary_df.to_excel(writer,       sheet_name="Executive Summary",  index=False)
@@ -188,19 +175,17 @@ with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
     aging_pivot.to_excel(writer,      sheet_name="Aging Buckets",      index=False)
     top_cust_export.to_excel(writer,  sheet_name="Top 10 Outstanding", index=False)
 
-# ─────────────────────────────────────────────────────
 # 8. FORMAT EXCEL
-# ─────────────────────────────────────────────────────
 STATUS_COLORS = {
-    "Paid – On Time"                  : "C6EFCE",
-    "Paid – Slightly Late (≤15 days)" : "FFEB9C",
-    "Paid – Late (16–30 days)"        : "FFCC99",
-    "Paid – Very Late (>30 days)"     : "FFC7CE",
-    "Cleared – Date Unknown"          : "DDEBF7",
+    "Paid - On Time"                  : "C6EFCE",
+    "Paid - Slightly Late (<=15 days)": "FFEB9C",
+    "Paid - Late (16-30 days)"        : "FFCC99",
+    "Paid - Very Late (>30 days)"     : "FFC7CE",
+    "Cleared - Date Unknown"          : "DDEBF7",
     "Current (Not Yet Due)"           : "C6EFCE",
-    "1–30 Days Overdue"               : "FFEB9C",
-    "31–60 Days Overdue"              : "FFCC99",
-    "61–90 Days Overdue"              : "FFC7CE",
+    "1-30 Days Overdue"               : "FFEB9C",
+    "31-60 Days Overdue"              : "FFCC99",
+    "61-90 Days Overdue"              : "FFC7CE",
     "90+ Days Overdue"                : "FF4444",
 }
 
@@ -211,10 +196,8 @@ thin        = Side(style="thin", color="CCCCCC")
 BORDER      = Border(left=thin, right=thin, top=thin, bottom=thin)
 
 wb = openpyxl.load_workbook(output_file)
-
 for sheet_name in wb.sheetnames:
     ws = wb[sheet_name]
-
     for cell in ws[1]:
         cell.fill      = HEADER_FILL
         cell.font      = HEADER_FONT
@@ -244,6 +227,6 @@ for sheet_name in wb.sheetnames:
     ws.freeze_panes = "A2"
 
 wb.save(output_file)
-print(f"\n✅ Full O2C Report saved: {output_file}")
-print("🎉 All done! 5 sheets generated successfully.")
+print(f"\nFull O2C Report saved: {output_file}")
+print("All done! 5 sheets generated successfully.")
 print("=" * 60)
