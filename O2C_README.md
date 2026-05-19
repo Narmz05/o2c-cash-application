@@ -1,26 +1,31 @@
-# O2C Cash Application & Invoice Reconciliation
+# 💰 Order to Cash – Cash Application & Invoice Reconciliation System
 
-I built this project to understand how Order to Cash works in real finance operations teams. The dataset has 50,000 real invoice records and I used Python to automate the cash application and reconciliation process that finance teams do manually every day.
-
----
-
-## Why I Built This
-
-While learning about O2C processes, I noticed that matching payments to invoices and tracking overdue accounts is something finance teams spend a lot of time doing manually. So I decided to automate it using Python and see what insights I could pull from a real dataset.
+A Python-based end-to-end **Order to Cash (O2C)** automation project built on a real-world dataset of **50,000 invoice records**. Automates cash application, invoice reconciliation, AR aging analysis, and generates a complete multi-sheet Excel report — replicating real O2C finance operations workflows.
 
 ---
 
-## What the Project Does
+## 📊 Dataset
 
-- Loads 50,000 invoice records and separates paid vs open invoices
-- Applies payments to invoices and classifies each as paid on time, late, or very late
-- Groups overdue invoices into aging buckets (1–30, 31–60, 61–90, 90+ days)
-- Finds the top 10 customers with the highest outstanding amounts
-- Exports everything into a formatted Excel report with 5 sheets
+- **Source:** Real-world O2C Invoice Dataset (Kaggle)
+- **Records:** 50,000 invoices
+- **Scope:** Multi-business, multi-currency (USD & CAD)
+- **Fields:** Invoice ID, Customer, Business Code, Amount, Due Date, Clear Date, Payment Terms, Open/Closed Status
 
 ---
 
-## What I Found (Results)
+## 🎯 What This Project Does
+
+| Module | Description |
+|--------|-------------|
+| **Cash Application** | Matches cleared payments to invoices, classifies as On Time / Late / Very Late |
+| **AR Reconciliation** | Separates open vs closed invoices, calculates outstanding balances |
+| **Aging Analysis** | Buckets open invoices into Current / 1–30 / 31–60 / 61–90 / 90+ days overdue |
+| **Collections Report** | Identifies top 10 customers by outstanding amount |
+| **Executive Summary** | KPI dashboard — collection rate, total invoiced, collected, outstanding |
+
+---
+
+## 📋 Key Results (from 50,000 records)
 
 | Metric | Value |
 |--------|-------|
@@ -28,57 +33,88 @@ While learning about O2C processes, I noticed that matching payments to invoices
 | Total Invoiced | $1,616,851,082 |
 | Total Collected | $1,282,601,395 |
 | Total Outstanding | $334,249,686 |
-| Collection Rate | 79.3% |
+| Collection Rate | **79.3%** |
+| Paid On Time | 23,236 invoices |
 
-Most of the overdue amount (around $159M) was sitting in the 61–90 days bucket which tells me those accounts need urgent collections follow-up.
+### AR Aging Breakdown
+| Bucket | Invoices | Amount |
+|--------|----------|--------|
+| Current | 8 | $235,790 |
+| 1–30 Days Overdue | 104 | $1,399,002 |
+| 31–60 Days Overdue | 2,906 | $92,470,574 |
+| 61–90 Days Overdue | 4,549 | $159,104,141 |
+| 90+ Days Overdue | 2,433 | $81,040,176 |
 
 ---
 
-## Files in This Repo
+## 📁 Project Structure
 
 ```
 o2c-cash-application/
-├── dataset.csv                 # 50,000 invoice records
-├── cash_application_real.py    # Main Python script
-├── O2C_Full_Report.xlsx        # Output report (5 sheets)
+│
+├── dataset.csv                  # Real-world O2C invoice dataset (50,000 records)
+├── cash_application.py          # Main automation script
+├── O2C_Full_Report.xlsx         # Auto-generated 5-sheet Excel report
 └── README.md
 ```
 
 ---
 
-## Excel Report Sheets
+## 📋 Excel Report Sheets
 
-- **Executive Summary** — overall KPIs at a glance
-- **Cash Application** — all 40,000 paid invoices with payment status
-- **AR Aging Detail** — 10,000 open invoices with aging classification
-- **Aging Buckets** — summary table by aging bucket
-- **Top 10 Outstanding** — customers to prioritize for collections
+| Sheet | Contents |
+|-------|---------|
+| **Executive Summary** | KPI dashboard — collection rate, totals |
+| **Cash Application** | 40,000 paid invoices with application status |
+| **AR Aging Detail** | 10,000 open invoices with aging classification |
+| **Aging Buckets** | Pivot summary by aging bucket |
+| **Top 10 Outstanding** | Highest outstanding customers for collections follow-up |
 
 ---
 
-## How to Run
+## 🛠️ Tools & Technologies
+
+| Tool | Purpose |
+|------|---------|
+| Python 3.x | Core automation |
+| Pandas | Data processing & reconciliation |
+| NumPy | Numerical operations |
+| OpenPyXL | Excel report generation & formatting |
+
+---
+
+## 🚀 How to Run
 
 ```bash
-# Install dependencies
+# 1. Clone the repository
+git clone https://github.com/yourusername/o2c-cash-application.git
+cd o2c-cash-application
+
+# 2. Install dependencies
 pip install pandas openpyxl numpy
 
-# Run the script
-python cash_application_real.py
+# 3. Run the script
+python cash_application.py
+
+# 4. Open the report
+O2C_Full_Report.xlsx
 ```
 
-The Excel report will be generated automatically in the same folder.
+---
+
+## 💡 Key O2C Concepts Demonstrated
+
+- **Cash Application** — Matching incoming payments to open invoices
+- **AR Aging** — Classifying overdue receivables by time buckets
+- **Collections Management** — Identifying priority accounts for follow-up
+- **Reconciliation** — Balancing total invoiced vs collected amounts
+- **Financial Reporting** — Generating ERP-style O2C dashboards
 
 ---
 
-## Tools Used
+## 👩‍💻 Author
 
-- Python, Pandas, NumPy, OpenPyXL
-
----
-
-## About Me
-
-I'm Narmadhadevi, a final year B.Tech IT student at Anna University. I built this as part of learning Order to Cash finance operations concepts.
-
-📧 narmadhadevi1008@gmail.com  
-🔗 linkedin.com/in/narmadhadevi
+**Narmadhadevi C**
+B.Tech Information Technology | Anna University
+📧 narmadhadevi1008@gmail.com
+🔗 LinkedIn/narmadhadevi
